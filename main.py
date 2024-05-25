@@ -14,6 +14,7 @@ async def get_robots_write_to_disk():
     Function to get robots.txt from Capterra's Website and write it to disk
     :return: Capterra's status_code and robots.txt content
     """
+
     # URL of the robots.txt file on Capterra's website
     url = 'https://www.capterra.com/robots.txt'
 
@@ -40,6 +41,7 @@ async def read_root():
     Base API, allows pre-downloading of the robots.txt file
     :return: HTMLResponse
     """
+
     # Calling function to get the robots.txt file and write it to disk
     await get_robots_write_to_disk()
 
@@ -56,32 +58,35 @@ async def get_robots():
     Serves Capterra's robots.txt file
     :return: HTML robots.txt
     """
-    filename = 'robots.txt'
+    try:
+        filename = 'robots.txt'
 
-    # Check if the file exists in the current directory
-    file_path = Path(filename)
-    if file_path.is_file():
-        # Reading the robots.txt file that was written during base URL hit
-        # as reading from disk will be faster than waiting for Capterra's API response
-        with open(filename, 'r') as robots_file:
-            robots_txt = robots_file.read()
-    else:
-        status_code, robots_txt = await get_robots_write_to_disk()
+        # Check if the file exists in the current directory
+        file_path = Path(filename)
+        if file_path.is_file():
+            # Reading the robots.txt file that was written during base URL hit
+            # as reading from disk will be faster than waiting for Capterra's API response
+            with open(filename, 'r') as robots_file:
+                robots_txt = robots_file.read()
+        else:
+            status_code, robots_txt = await get_robots_write_to_disk()
 
-        # Checking if the response status code is not 200 (OK)
-        if status_code != 200 or not robots_txt:
-            # Raise an HTTPException with the status code and an error message
-            raise HTTPException(status_code=status_code, detail='Failed to fetch robots.txt')
+            # Checking if the response status code is not 200 (OK)
+            if status_code != 200 or not robots_txt:
+                # Raise an HTTPException with the status code and an error message
+                raise HTTPException(status_code=status_code, detail='Failed to fetch robots.txt')
 
-    # Replacing newlines ("\n") with HTML line breaks ("<br>") to format the text for HTML
-    robots_html = robots_txt.replace('\n', '<br>')
+        # Replacing newlines ("\n") with HTML line breaks ("<br>") to format the text for HTML
+        robots_html = robots_txt.replace('\n', '<br>')
 
-    # Create a Jinja2 template to wrap the formatted robots.txt content in a <pre> tag
-    template = Template('<pre>{{ robots_html|safe }}</pre>')
+        # Create a Jinja2 template to wrap the formatted robots.txt content in a <pre> tag
+        template = Template('<pre>{{ robots_html|safe }}</pre>')
 
-    rendered_html = template.render(robots_html=robots_html)
+        rendered_html = template.render(robots_html=robots_html)
 
-    return HTMLResponse(content=rendered_html)
+        return HTMLResponse(content=rendered_html)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Internal server error :: {e}')
 
 
 if __name__ == '__main__':
